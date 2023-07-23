@@ -1,0 +1,32 @@
+﻿@page "/"
+ 
+<h3>Poker</h3>
+
+@if (!_connected)
+{
+    <EditForm Model="@this" OnValidSubmit="@(() => _connected = true)">
+        <DataAnnotationsValidator/>
+        <label for="username">
+            Name:
+        </label>
+        <input @bind="UserName" @bind:event="oninput" id="username" placeholder="Username"/>
+        <ValidationMessage For="@(() => UserName)" />
+
+        <button disabled="@(string.IsNullOrWhiteSpace(UserName))" >
+            Connect
+        </button>
+    </EditForm>
+}
+else
+{
+    <div>
+        valami
+    </div>
+}
+
+@code {
+    private bool _connected = false;
+
+    [Required]
+    private string UserName { get; set; } = string.Empty;
+}
