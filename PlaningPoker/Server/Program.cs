@@ -15,6 +15,8 @@ builder.Services.AddResponseCompression(options =>
         .Concat(new[] { "application/octet-stream" });
 });
 
+builder.Services.AddSingleton<PlayerStore>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

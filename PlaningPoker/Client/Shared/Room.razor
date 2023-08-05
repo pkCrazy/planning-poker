@@ -1,0 +1,69 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@using PlaningPoker.Shared
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+
+<h3>User: @Username</h3>
+
+<h4>Players</h4>
+<ul>
+    @foreach (var player in _players)
+    {
+        <li>
+            Username: @player.Value.Username
+        </li>
+    }
+</ul>
+
+
+@code {
+    private const int ExpectedMaximumPlayes = 10;
+
+    private readonly Guid _id = Guid.NewGuid();
+
+    private HubConnection? _hubConnection;
+    private Dictionary<Guid, Player> _players = new(ExpectedMaximumPlayes);
+
+    [Parameter, EditorRequired]
+    public string Username { get; init; } = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/pokerhub"))
+            .Build();
+
+        _hubConnection.On<IReadOnlyCollection<Player>>("ReceivePlayerConnected", OnPlayerConnected);
+        _hubConnection.On<IReadOnlyCollection<Player>>("PlayerDisconnected", OnPlayerDisconnected);
+
+        await _hubConnection.StartAsync();
+        await _hubConnection.SendAsync("PlayerConnected", _id, Username);
+    }
+
+    private void OnPlayerConnected(IReadOnlyCollection<Player> players)
+    {
+        _players = players.ToDictionary(x => x.Id, x => x);
+
+        StateHasChanged();
+    }
+
+    private void OnPlayerDisconnected(IReadOnlyCollection<Player> players)
+    {
+        _players = players.ToDictionary(x => x.Id, x => x);
+
+        StateHasChanged();
+    }
+
+    private async Task Vote(int number)
+    {
+        await _hubConnection!.SendAsync("Vote", _id, number);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
+}
