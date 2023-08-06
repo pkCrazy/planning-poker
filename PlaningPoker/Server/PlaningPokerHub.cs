@@ -5,25 +5,25 @@ namespace PlaningPoker.Server;
 
 public sealed class PlaningPokerHub : Hub<IPlaningPokerHub>
 {
-    private readonly PlayerStore _store;
+    private readonly PlayerStore _players;
 
-    public PlaningPokerHub(PlayerStore store)
+    public PlaningPokerHub(PlayerStore players)
     {
-        _store = store;
+        _players = players;
     }
 
     public override Task OnConnectedAsync()
     {
-        _store.Players.TryAdd(Context.ConnectionId, Player.Empty);
+        _players.TryAddPlayer(Context.ConnectionId, Player.Empty);
 
         return base.OnConnectedAsync();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        _store.Players.Remove(Context.ConnectionId);
+        _players.Remove(Context.ConnectionId);
 
-        await Clients.All.PlayerDisconnected(_store.Players.Values.ToArray());
+        await Clients.All.PlayerDisconnected(_players.ToArray());
 
         await base.OnDisconnectedAsync(exception);
     }
@@ -31,40 +31,22 @@ public sealed class PlaningPokerHub : Hub<IPlaningPokerHub>
     public async Task PlayerConnected(Guid id, string username)
     {
         Player player = new(id, username);
-        if (_store.Players.TryGetValue(Context.ConnectionId, out _))
-        {
-            _store.Players[Context.ConnectionId] = player;
-        }
-        else
-        {
-            _store.Players.TryAdd(Context.ConnectionId, player);
-        }
+        _players.AddPlayer(Context.ConnectionId, player);
 
-        await Clients.All.ReceivePlayerConnected(_store.Players.Values.ToArray());
+        await Clients.All.ReceivePlayerConnected(_players.ToArray());
     }
 
     public async Task Vote(int vote)
     {
-        var player = _store.Players[Context.ConnectionId] with
-        {
-            Vote = vote
-        };
+        _players.SetPlayerVote(Context.ConnectionId, vote);
 
-        _store.Players[Context.ConnectionId] = player;
-
-        await Clients.All.PlayerVoted(player);
+        await Clients.All.PlayerVoted(_players[Context.ConnectionId]);
     }
 
     public async Task NewVote()
     {
-        foreach (var key in _store.Players.Keys)
-        {
-            _store.Players[key] = _store.Players[key] with
-            {
-                Vote = null
-            };
-        }
+        _players.ResetVotes();
 
-        await Clients.All.NewVote(_store.Players.Values.ToArray());
+        await Clients.All.NewVote(_players.ToArray());
     }
 }
