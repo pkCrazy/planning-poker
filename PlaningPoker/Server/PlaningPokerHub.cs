@@ -14,7 +14,7 @@ public sealed class PlaningPokerHub : Hub<IPlaningPokerHub>
 
     public override Task OnConnectedAsync()
     {
-        _store.Players.TryAdd(Context.ConnectionId, Player.Empty());
+        _store.Players.TryAdd(Context.ConnectionId, Player.Empty);
 
         return base.OnConnectedAsync();
     }
@@ -43,7 +43,28 @@ public sealed class PlaningPokerHub : Hub<IPlaningPokerHub>
         await Clients.All.ReceivePlayerConnected(_store.Players.Values.ToArray());
     }
 
-    public async Task Vote(Guid id, int vote)
+    public async Task Vote(int vote)
     {
+        var player = _store.Players[Context.ConnectionId] with
+        {
+            Vote = vote
+        };
+
+        _store.Players[Context.ConnectionId] = player;
+
+        await Clients.All.PlayerVoted(player);
+    }
+
+    public async Task NewVote()
+    {
+        foreach (var key in _store.Players.Keys)
+        {
+            _store.Players[key] = _store.Players[key] with
+            {
+                Vote = null
+            };
+        }
+
+        await Clients.All.NewVote(_store.Players.Values.ToArray());
     }
 }

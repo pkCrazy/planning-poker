@@ -8,5 +8,7 @@ public interface IPlaningPokerHub
 
     Task PlayerDisconnected(IEnumerable<Player> players);
 
-    Task ReceiveVote(Guid id, int vote);
+    Task PlayerVoted(Player player);
+
+    Task NewVote(IEnumerable<Player> players);
 }

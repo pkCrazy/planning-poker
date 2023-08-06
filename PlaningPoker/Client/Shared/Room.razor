@@ -5,21 +5,38 @@
 
 <h3>User: @Username</h3>
 
+<button @onclick="() => Vote(0)">0</button>
+<button @onclick="() => Vote(1)">1</button>
+<button @onclick="() => Vote(2)">2</button>
+<button @onclick="() => Vote(3)">3</button>
+<button @onclick="() => Vote(5)">5</button>
+<button @onclick="() => Vote(8)">8</button>
+<button @onclick="() => Vote(13)">13</button>
+<button @onclick="() => Vote(20)">20</button>
+<button @onclick="() => Vote(40)">40</button>
+<button @onclick="() => Vote(100)">100</button>
+
 <h4>Players</h4>
 <ul>
     @foreach (var player in _players)
     {
         <li>
             Username: @player.Value.Username
+            @if (player.Value.Vote is not null)
+            {
+                <div>
+                    Vote: @player.Value.Vote
+                </div>
+            }
         </li>
     }
 </ul>
 
+<button @onclick="NewVote">New vote</button>
+
 
 @code {
     private const int ExpectedMaximumPlayes = 10;
-
-    private readonly Guid _id = Guid.NewGuid();
 
     private HubConnection? _hubConnection;
     private Dictionary<Guid, Player> _players = new(ExpectedMaximumPlayes);
@@ -33,21 +50,23 @@
             .WithUrl(Navigation.ToAbsoluteUri("/pokerhub"))
             .Build();
 
-        _hubConnection.On<IReadOnlyCollection<Player>>("ReceivePlayerConnected", OnPlayerConnected);
-        _hubConnection.On<IReadOnlyCollection<Player>>("PlayerDisconnected", OnPlayerDisconnected);
+        _hubConnection.On<IEnumerable<Player>>("ReceivePlayerConnected", OnPlayerConnected);
+        _hubConnection.On<IEnumerable<Player>>("PlayerDisconnected", OnPlayerDisconnected);
+        _hubConnection.On<Player>("PlayerVoted", OnPlayerVoted);
+        _hubConnection.On<IEnumerable<Player>>("NewVote", OnNewVote);
 
         await _hubConnection.StartAsync();
-        await _hubConnection.SendAsync("PlayerConnected", _id, Username);
+        await _hubConnection.SendAsync("PlayerConnected", Guid.NewGuid(), Username);
     }
 
-    private void OnPlayerConnected(IReadOnlyCollection<Player> players)
+    private void OnPlayerConnected(IEnumerable<Player> players)
     {
         _players = players.ToDictionary(x => x.Id, x => x);
 
         StateHasChanged();
     }
 
-    private void OnPlayerDisconnected(IReadOnlyCollection<Player> players)
+    private void OnPlayerDisconnected(IEnumerable<Player> players)
     {
         _players = players.ToDictionary(x => x.Id, x => x);
 
@@ -56,7 +75,26 @@
 
     private async Task Vote(int number)
     {
-        await _hubConnection!.SendAsync("Vote", _id, number);
+        await _hubConnection!.SendAsync("Vote", number);
+    }
+
+    private void OnPlayerVoted(Player player)
+    {
+        _players[player.Id] = player;
+
+        StateHasChanged();
+    }
+
+    private async Task NewVote()
+    {
+        await _hubConnection!.SendAsync("NewVote");
+    }
+
+    private void OnNewVote(IEnumerable<Player> players)
+    {
+        _players = players.ToDictionary(x => x.Id, x => x);
+
+        StateHasChanged();
     }
 
     public async ValueTask DisposeAsync()
