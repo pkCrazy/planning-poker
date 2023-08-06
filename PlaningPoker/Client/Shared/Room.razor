@@ -50,23 +50,16 @@
             .WithUrl(Navigation.ToAbsoluteUri("/pokerhub"))
             .Build();
 
-        _hubConnection.On<IEnumerable<Player>>("ReceivePlayerConnected", OnPlayerConnected);
-        _hubConnection.On<IEnumerable<Player>>("PlayerDisconnected", OnPlayerDisconnected);
+        _hubConnection.On<IEnumerable<Player>>("ReceivePlayerConnected", SetPlayers);
+        _hubConnection.On<IEnumerable<Player>>("PlayerDisconnected", SetPlayers);
         _hubConnection.On<Player>("PlayerVoted", OnPlayerVoted);
-        _hubConnection.On<IEnumerable<Player>>("NewVote", OnNewVote);
+        _hubConnection.On<IEnumerable<Player>>("NewVote", SetPlayers);
 
         await _hubConnection.StartAsync();
         await _hubConnection.SendAsync("PlayerConnected", Guid.NewGuid(), Username);
     }
 
-    private void OnPlayerConnected(IEnumerable<Player> players)
-    {
-        _players = players.ToDictionary(x => x.Id, x => x);
-
-        StateHasChanged();
-    }
-
-    private void OnPlayerDisconnected(IEnumerable<Player> players)
+    private void SetPlayers(IEnumerable<Player> players)
     {
         _players = players.ToDictionary(x => x.Id, x => x);
 
@@ -88,13 +81,6 @@
     private async Task NewVote()
     {
         await _hubConnection!.SendAsync("NewVote");
-    }
-
-    private void OnNewVote(IEnumerable<Player> players)
-    {
-        _players = players.ToDictionary(x => x.Id, x => x);
-
-        StateHasChanged();
     }
 
     public async ValueTask DisposeAsync()

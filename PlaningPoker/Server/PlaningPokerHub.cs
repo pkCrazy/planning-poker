@@ -30,8 +30,7 @@ public sealed class PlaningPokerHub : Hub<IPlaningPokerHub>
 
     public async Task PlayerConnected(Guid id, string username)
     {
-        Player player = new(id, username);
-        _players.AddPlayer(Context.ConnectionId, player);
+        _players.AddPlayer(Context.ConnectionId, new Player(id, username));
 
         await Clients.All.ReceivePlayerConnected(_players.ToArray());
     }
