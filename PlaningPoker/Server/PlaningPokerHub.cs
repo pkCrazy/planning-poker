@@ -5,47 +5,54 @@ namespace PlaningPoker.Server;
 
 public sealed class PlaningPokerHub : Hub<IPlaningPokerHub>
 {
-    private readonly PlayerStore _players;
+    private readonly RoomState _state;
 
-    public PlaningPokerHub(PlayerStore players)
+    public PlaningPokerHub(RoomState state)
     {
-        _players = players;
+        _state = state;
     }
 
     public override Task OnConnectedAsync()
     {
-        _players.TryAddPlayer(Context.ConnectionId, Player.Empty);
+        _state.Players.TryAddPlayer(Context.ConnectionId, Player.Empty);
 
         return base.OnConnectedAsync();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        _players.Remove(Context.ConnectionId);
+        _state.Players.Remove(Context.ConnectionId);
 
-        await Clients.All.PlayerDisconnected(_players.ToArray());
+        await Clients.All.PlayerDisconnected(_state.Players.ToArray());
 
         await base.OnDisconnectedAsync(exception);
     }
 
     public async Task PlayerConnected(Guid id, string username)
     {
-        _players.AddPlayer(Context.ConnectionId, new Player(id, username));
+        _state.Players.AddPlayer(Context.ConnectionId, new Player(id, username));
 
-        await Clients.All.ReceivePlayerConnected(_players.ToArray());
+        await Clients.All.PlayerConnected(_state.Players.ToArray(), _state.AreVotesVisible);
     }
 
     public async Task Vote(int vote)
     {
-        _players.SetPlayerVote(Context.ConnectionId, vote);
+        _state.Players.SetPlayerVote(Context.ConnectionId, vote);
 
-        await Clients.All.PlayerVoted(_players[Context.ConnectionId]);
+        await Clients.All.PlayerVoted(_state.Players[Context.ConnectionId]);
     }
 
     public async Task NewVote()
     {
-        _players.ResetVotes();
+        _state.AreVotesVisible = false;
+        _state.Players.ResetVotes();
 
-        await Clients.All.NewVote(_players.ToArray());
+        await Clients.All.NewVote(_state.Players.ToArray());
+    }
+
+    public async Task ShowVotes()
+    {
+        _state.AreVotesVisible = true;
+        await Clients.All.ShowVotes();
     }
 }

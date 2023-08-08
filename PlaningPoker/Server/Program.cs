@@ -15,7 +15,7 @@ builder.Services.AddResponseCompression(options =>
         .Concat(new[] { "application/octet-stream" });
 });
 
-builder.Services.AddSingleton<PlayerStore>();
+builder.Services.AddSingleton<RoomState>();
 
 var app = builder.Build();
 

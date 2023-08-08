@@ -4,7 +4,9 @@ namespace PlaningPoker.Server;
 
 public sealed class PlayerStore
 {
-    private readonly Dictionary<string, Player> _players = new(10);
+    private const int ExpectedMaximumPlayers = 10;
+
+    private readonly Dictionary<string, Player> _players = new(ExpectedMaximumPlayers);
 
     public Player this[string key] => _players[key];
 

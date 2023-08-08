@@ -22,17 +22,31 @@
     {
         <li>
             Username: @player.Value.Username
-            @if (player.Value.Vote is not null)
+            
+            @if (_areVotesVisible)
             {
-                <div>
-                    Vote: @player.Value.Vote
-                </div>
+                @if (player.Value.Vote is not null)
+                {
+                    <div>
+                        Vote: @player.Value.Vote
+                    </div>
+                }
+            }
+            else
+            {
+                @if (player.Value.Vote is not null)
+                {
+                    <div>
+                        blue square
+                    </div>
+                }
             }
         </li>
     }
 </ul>
 
 <button @onclick="NewVote">New vote</button>
+<button @onclick="ShowVotes">Show votes</button>
 
 
 @code {
@@ -40,6 +54,7 @@
 
     private HubConnection? _hubConnection;
     private Dictionary<Guid, Player> _players = new(ExpectedMaximumPlayes);
+    private bool _areVotesVisible = false;
 
     [Parameter, EditorRequired]
     public string Username { get; init; } = string.Empty;
@@ -50,13 +65,23 @@
             .WithUrl(Navigation.ToAbsoluteUri("/pokerhub"))
             .Build();
 
-        _hubConnection.On<IEnumerable<Player>>("ReceivePlayerConnected", SetPlayers);
+        _hubConnection.On<IEnumerable<Player>, bool>("PlayerConnected", OnPlayersConnected);
         _hubConnection.On<IEnumerable<Player>>("PlayerDisconnected", SetPlayers);
         _hubConnection.On<Player>("PlayerVoted", OnPlayerVoted);
-        _hubConnection.On<IEnumerable<Player>>("NewVote", SetPlayers);
+        _hubConnection.On<IEnumerable<Player>>("NewVote", OnNewVote);
+        _hubConnection.On("ShowVotes", OnShowVotes);
 
         await _hubConnection.StartAsync();
         await _hubConnection.SendAsync("PlayerConnected", Guid.NewGuid(), Username);
+    }
+
+    private void OnPlayersConnected(IEnumerable<Player> players, bool areVotesVisible)
+    {
+        _players = players.ToDictionary(x => x.Id, x => x);
+
+        _areVotesVisible = areVotesVisible;
+
+        StateHasChanged();
     }
 
     private void SetPlayers(IEnumerable<Player> players)
@@ -81,6 +106,27 @@
     private async Task NewVote()
     {
         await _hubConnection!.SendAsync("NewVote");
+    }
+
+    private void OnNewVote(IEnumerable<Player> players)
+    {
+        _players = players.ToDictionary(x => x.Id, x => x);
+
+        _areVotesVisible = false;
+
+        StateHasChanged();
+    }
+
+    private async Task ShowVotes()
+    {
+        await _hubConnection!.SendAsync("ShowVotes");
+    }
+
+    private void OnShowVotes()
+    {
+        _areVotesVisible = true;
+
+        StateHasChanged();
     }
 
     public async ValueTask DisposeAsync()
