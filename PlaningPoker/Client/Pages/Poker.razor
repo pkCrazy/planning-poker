@@ -19,7 +19,7 @@
 }
 else
 {
-    <Room Username="@Username" />
+    <Room Username="@Username" ConnectionFailed="() => _connected = false" />
 }
 
 @code {

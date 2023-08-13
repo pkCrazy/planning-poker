@@ -5,16 +5,16 @@
 
 <h3>User: @Username</h3>
 
-<button @onclick="() => Vote(0)">0</button>
-<button @onclick="() => Vote(1)">1</button>
-<button @onclick="() => Vote(2)">2</button>
-<button @onclick="() => Vote(3)">3</button>
-<button @onclick="() => Vote(5)">5</button>
-<button @onclick="() => Vote(8)">8</button>
-<button @onclick="() => Vote(13)">13</button>
-<button @onclick="() => Vote(20)">20</button>
-<button @onclick="() => Vote(40)">40</button>
-<button @onclick="() => Vote(100)">100</button>
+<button @onclick="() => Vote(0)" disabled="@IsConnectionFailed">0</button>
+<button @onclick="() => Vote(1)" disabled="@IsConnectionFailed">1</button>
+<button @onclick="() => Vote(2)" disabled="@IsConnectionFailed">2</button>
+<button @onclick="() => Vote(3)" disabled="@IsConnectionFailed">3</button>
+<button @onclick="() => Vote(5)" disabled="@IsConnectionFailed">5</button>
+<button @onclick="() => Vote(8)" disabled="@IsConnectionFailed">8</button>
+<button @onclick="() => Vote(13)" disabled="@IsConnectionFailed">13</button>
+<button @onclick="() => Vote(20)" disabled="@IsConnectionFailed">20</button>
+<button @onclick="() => Vote(40)" disabled="@IsConnectionFailed">40</button>
+<button @onclick="() => Vote(100)" disabled="@IsConnectionFailed">100</button>
 
 <h4>Players</h4>
 <ul>
@@ -22,7 +22,7 @@
     {
         <li>
             Username: @player.Value.Username
-            
+
             @if (_areVotesVisible)
             {
                 @if (player.Value.Vote is not null)
@@ -45,9 +45,15 @@
     }
 </ul>
 
-<button @onclick="NewVote">New vote</button>
-<button @onclick="ShowVotes">Show votes</button>
+<button @onclick="NewVote" disabled="@IsConnectionFailed">New vote</button>
+<button @onclick="ShowVotes" disabled="@IsConnectionFailed">Show votes</button>
 
+@if (IsConnectionFailed)
+{
+    <div style="background-color: red; color: white;">
+        Connection failed. Try to reconnect. <button @onclick="@(async () => await ConnectionFailed.InvokeAsync())">Ok</button>
+    </div>
+}
 
 @code {
     private const int ExpectedMaximumPlayes = 10;
@@ -56,8 +62,13 @@
     private Dictionary<Guid, Player> _players = new(ExpectedMaximumPlayes);
     private bool _areVotesVisible = false;
 
+    private bool IsConnectionFailed { get; set; }
+
     [Parameter, EditorRequired]
     public string Username { get; init; } = string.Empty;
+
+    [Parameter]
+    public EventCallback ConnectionFailed { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -71,8 +82,15 @@
         _hubConnection.On<IEnumerable<Player>>("NewVote", OnNewVote);
         _hubConnection.On("ShowVotes", OnShowVotes);
 
-        await _hubConnection.StartAsync();
-        await _hubConnection.SendAsync("PlayerConnected", Guid.NewGuid(), Username);
+        try
+        {
+            await _hubConnection.StartAsync();
+            await _hubConnection.SendAsync("PlayerConnected", Guid.NewGuid(), Username);
+        }
+        catch (HttpRequestException)
+        {
+            IsConnectionFailed = true;
+        }
     }
 
     private void OnPlayersConnected(IEnumerable<Player> players, bool areVotesVisible)
@@ -93,7 +111,10 @@
 
     private async Task Vote(int number)
     {
-        await _hubConnection!.SendAsync("Vote", number);
+        if (_hubConnection?.State is HubConnectionState.Connected)
+        {
+            await _hubConnection.SendAsync("Vote", number);
+        }
     }
 
     private void OnPlayerVoted(Player player)
@@ -105,7 +126,10 @@
 
     private async Task NewVote()
     {
-        await _hubConnection!.SendAsync("NewVote");
+        if (_hubConnection?.State is HubConnectionState.Connected)
+        {
+            await _hubConnection.SendAsync("NewVote");
+        }
     }
 
     private void OnNewVote(IEnumerable<Player> players)
@@ -119,7 +143,10 @@
 
     private async Task ShowVotes()
     {
-        await _hubConnection!.SendAsync("ShowVotes");
+        if (_hubConnection?.State is HubConnectionState.Connected)
+        {
+            await _hubConnection.SendAsync("ShowVotes");
+        }
     }
 
     private void OnShowVotes()
