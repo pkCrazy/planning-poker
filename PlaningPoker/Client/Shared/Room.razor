@@ -5,16 +5,18 @@
 
 <h3>User: @Username</h3>
 
-<button @onclick="() => Vote(0)" disabled="@IsConnectionFailed">0</button>
-<button @onclick="() => Vote(1)" disabled="@IsConnectionFailed">1</button>
-<button @onclick="() => Vote(2)" disabled="@IsConnectionFailed">2</button>
-<button @onclick="() => Vote(3)" disabled="@IsConnectionFailed">3</button>
-<button @onclick="() => Vote(5)" disabled="@IsConnectionFailed">5</button>
-<button @onclick="() => Vote(8)" disabled="@IsConnectionFailed">8</button>
-<button @onclick="() => Vote(13)" disabled="@IsConnectionFailed">13</button>
-<button @onclick="() => Vote(20)" disabled="@IsConnectionFailed">20</button>
-<button @onclick="() => Vote(40)" disabled="@IsConnectionFailed">40</button>
-<button @onclick="() => Vote(100)" disabled="@IsConnectionFailed">100</button>
+<p>Connection state: @ConnectionState.ToString()</p>
+
+<button @onclick="() => Vote(0)" disabled="@ReconnectingOrDisconnected">0</button>
+<button @onclick="() => Vote(1)" disabled="@ReconnectingOrDisconnected">1</button>
+<button @onclick="() => Vote(2)" disabled="@ReconnectingOrDisconnected">2</button>
+<button @onclick="() => Vote(3)" disabled="@ReconnectingOrDisconnected">3</button>
+<button @onclick="() => Vote(5)" disabled="@ReconnectingOrDisconnected">5</button>
+<button @onclick="() => Vote(8)" disabled="@ReconnectingOrDisconnected">8</button>
+<button @onclick="() => Vote(13)" disabled="@ReconnectingOrDisconnected">13</button>
+<button @onclick="() => Vote(20)" disabled="@ReconnectingOrDisconnected">20</button>
+<button @onclick="() => Vote(40)" disabled="@ReconnectingOrDisconnected">40</button>
+<button @onclick="() => Vote(100)" disabled="@ReconnectingOrDisconnected">100</button>
 
 <h4>Players</h4>
 <ul>
@@ -45,10 +47,10 @@
     }
 </ul>
 
-<button @onclick="NewVote" disabled="@IsConnectionFailed">New vote</button>
-<button @onclick="ShowVotes" disabled="@IsConnectionFailed">Show votes</button>
+<button @onclick="NewVote" disabled="@ReconnectingOrDisconnected">New vote</button>
+<button @onclick="ShowVotes" disabled="@ReconnectingOrDisconnected">Show votes</button>
 
-@if (IsConnectionFailed)
+@if (ConnectionState is HubConnectionState.Disconnected)
 {
     <div style="background-color: red; color: white;">
         Connection failed. Try to reconnect. <button @onclick="@(async () => await ConnectionFailed.InvokeAsync())">Ok</button>
@@ -62,7 +64,9 @@
     private Dictionary<Guid, Player> _players = new(ExpectedMaximumPlayes);
     private bool _areVotesVisible = false;
 
-    private bool IsConnectionFailed { get; set; }
+    private HubConnectionState ConnectionState => _hubConnection?.State ?? HubConnectionState.Disconnected;
+
+    private bool ReconnectingOrDisconnected => ConnectionState is HubConnectionState.Reconnecting or HubConnectionState.Disconnected;
 
     [Parameter, EditorRequired]
     public string Username { get; init; } = string.Empty;
@@ -74,7 +78,12 @@
     {
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/pokerhub"))
+            .WithAutomaticReconnect()
             .Build();
+
+        _hubConnection.Reconnecting += ConnectionEvent;
+        _hubConnection.Closed += ConnectionEvent;
+        _hubConnection.Reconnected += Reconnected;
 
         _hubConnection.On<IEnumerable<Player>, bool>("PlayerConnected", OnPlayersConnected);
         _hubConnection.On<IEnumerable<Player>>("PlayerDisconnected", SetPlayers);
@@ -89,7 +98,21 @@
         }
         catch (HttpRequestException)
         {
-            IsConnectionFailed = true;
+        }
+    }
+
+    private Task ConnectionEvent(Exception? _)
+    {
+        StateHasChanged();
+
+        return Task.CompletedTask;
+    }
+
+    private async Task Reconnected(string? _)
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.SendAsync("PlayerConnected", Guid.NewGuid(), Username);
         }
     }
 
