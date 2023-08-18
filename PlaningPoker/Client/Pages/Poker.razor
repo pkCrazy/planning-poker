@@ -9,22 +9,22 @@
         <label for="username">
             Name:
         </label>
-        <input @bind="Username" @bind:event="oninput" id="username" placeholder="Username"/>
-        <ValidationMessage For="@(() => Username)" />
+        <input @bind="Playername" @bind:event="oninput" id="username" placeholder="Player's name"/>
+        <ValidationMessage For="@(() => Playername)" />
 
-        <button disabled="@(string.IsNullOrWhiteSpace(Username))" >
+        <button disabled="@(string.IsNullOrWhiteSpace(Playername))" >
             Connect
         </button>
     </EditForm>
 }
 else
 {
-    <Room Username="@Username" ConnectionFailed="() => _connected = false" />
+    <Room Playername="@Playername" ConnectionFailed="() => _connected = false" />
 }
 
 @code {
     private bool _connected = false;
 
     [Required]
-    private string Username { get; set; } = string.Empty;
+    private string Playername { get; set; } = string.Empty;
 }

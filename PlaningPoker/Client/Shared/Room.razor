@@ -3,7 +3,7 @@
 @inject NavigationManager Navigation
 @implements IAsyncDisposable
 
-<h3>User: @Username</h3>
+<h3>User: @Playername</h3>
 
 <p>Connection state: @ConnectionState.ToString()</p>
 
@@ -23,7 +23,7 @@
     @foreach (var player in _players)
     {
         <li>
-            Username: @player.Value.Username
+            Player's name: @player.Value.Name
 
             @if (_areVotesVisible)
             {
@@ -69,7 +69,7 @@
     private bool ReconnectingOrDisconnected => ConnectionState is HubConnectionState.Reconnecting or HubConnectionState.Disconnected;
 
     [Parameter, EditorRequired]
-    public string Username { get; init; } = string.Empty;
+    public string Playername { get; init; } = string.Empty;
 
     [Parameter]
     public EventCallback ConnectionFailed { get; set; }
@@ -83,10 +83,10 @@
 
         _hubConnection.Reconnecting += ConnectionEvent;
         _hubConnection.Closed += ConnectionEvent;
-        _hubConnection.Reconnected += Reconnected;
+        _hubConnection.Reconnected += OnReconnected;
 
-        _hubConnection.On<IEnumerable<Player>, bool>("PlayerConnected", OnPlayersConnected);
-        _hubConnection.On<IEnumerable<Player>>("PlayerDisconnected", SetPlayers);
+        _hubConnection.On<IEnumerable<Player>, bool>("PlayerConnected", OnPlayerConnected);
+        _hubConnection.On<IEnumerable<Player>>("PlayerDisconnected", OnPlayerDisconnected);
         _hubConnection.On<Player>("PlayerVoted", OnPlayerVoted);
         _hubConnection.On<IEnumerable<Player>>("NewVote", OnNewVote);
         _hubConnection.On("ShowVotes", OnShowVotes);
@@ -94,7 +94,7 @@
         try
         {
             await _hubConnection.StartAsync();
-            await _hubConnection.SendAsync("PlayerConnected", Username);
+            await _hubConnection.SendAsync("PlayerConnected", Playername);
         }
         catch (HttpRequestException)
         {
@@ -108,15 +108,15 @@
         return Task.CompletedTask;
     }
 
-    private async Task Reconnected(string? _)
+    private async Task OnReconnected(string? _)
     {
         if (_hubConnection is not null)
         {
-            await _hubConnection.SendAsync("PlayerConnected", Username);
+            await _hubConnection.SendAsync("PlayerConnected", Playername);
         }
     }
 
-    private void OnPlayersConnected(IEnumerable<Player> players, bool areVotesVisible)
+    private void OnPlayerConnected(IEnumerable<Player> players, bool areVotesVisible)
     {
         _players = players.ToDictionary(x => x.Id, x => x);
 
@@ -125,7 +125,7 @@
         StateHasChanged();
     }
 
-    private void SetPlayers(IEnumerable<Player> players)
+    private void OnPlayerDisconnected(IEnumerable<Player> players)
     {
         _players = players.ToDictionary(x => x.Id, x => x);
 

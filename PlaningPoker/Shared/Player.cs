@@ -1,6 +1,6 @@
 ﻿namespace PlaningPoker.Shared;
 
-public record Player(Guid Id, string Username)
+public record Player(Guid Id, string Name)
 {
     private static Player? _instance;
 
