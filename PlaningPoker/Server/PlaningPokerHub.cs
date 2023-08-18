@@ -28,9 +28,9 @@ public sealed class PlaningPokerHub : Hub<IPlaningPokerHub>
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task PlayerConnected(Guid id, string username)
+    public async Task PlayerConnected(string username)
     {
-        _state.Players.AddPlayer(Context.ConnectionId, new Player(id, username));
+        _state.Players.AddPlayer(Context.ConnectionId, new Player(Guid.NewGuid(), username));
 
         await Clients.All.PlayerConnected(_state.Players.ToArray(), _state.AreVotesVisible);
     }

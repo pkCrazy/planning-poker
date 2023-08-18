@@ -94,7 +94,7 @@
         try
         {
             await _hubConnection.StartAsync();
-            await _hubConnection.SendAsync("PlayerConnected", Guid.NewGuid(), Username);
+            await _hubConnection.SendAsync("PlayerConnected", Username);
         }
         catch (HttpRequestException)
         {
@@ -112,7 +112,7 @@
     {
         if (_hubConnection is not null)
         {
-            await _hubConnection.SendAsync("PlayerConnected", Guid.NewGuid(), Username);
+            await _hubConnection.SendAsync("PlayerConnected", Username);
         }
     }
 
