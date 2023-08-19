@@ -1,30 +1,52 @@
 ﻿@page "/"
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
  
 <h3>Poker</h3>
 
-@if (!_connected)
+@if (!_showRoom)
 {
-    <EditForm Model="@this" OnValidSubmit="@(() => _connected = true)">
-        <DataAnnotationsValidator/>
-        <label for="username">
+    <EditForm Model="@this" OnValidSubmit="@(() => _showRoom = true)">
+        <DataAnnotationsValidator />
+        <label for="playername">
             Name:
         </label>
-        <input @bind="Playername" @bind:event="oninput" id="username" placeholder="Player's name"/>
-        <ValidationMessage For="@(() => Playername)" />
+        <input @bind:get="_playername" @bind:set="SetPlayername" @bind:event="oninput" id="playername" placeholder="Player's name" autofucus />
+        <ValidationMessage For="@(() => _playername)" />
 
-        <button disabled="@(string.IsNullOrWhiteSpace(Playername))" >
+        <button disabled="@(string.IsNullOrWhiteSpace(_playername))">
             Connect
         </button>
     </EditForm>
 }
 else
 {
-    <Room Playername="@Playername" ConnectionFailed="() => _connected = false" />
+    <Room Playername="@_playername" ConnectionFailed="() => _showRoom = false" />
 }
 
 @code {
-    private bool _connected = false;
+    private const string LocalStorageKey = "playername";
+
+    private bool _showRoom = false;
 
     [Required]
-    private string Playername { get; set; } = string.Empty;
+    private string _playername = string.Empty;
+
+    private async Task SetPlayername(string value)
+    {
+        _playername = value;
+
+        await LocalStorage.SetItemAsStringAsync(LocalStorageKey, _playername);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (await LocalStorage.ContainKeyAsync(LocalStorageKey))
+        {
+            _playername = await LocalStorage.GetItemAsStringAsync(LocalStorageKey);
+        }
+        else
+        {
+            await LocalStorage.SetItemAsStringAsync(LocalStorageKey, string.Empty);
+        }
+    }
 }
