@@ -183,6 +183,10 @@
     {
         if (_hubConnection is not null)
         {
+            _hubConnection.Closed -= ConnectionEvent;
+            _hubConnection.Reconnecting -= ConnectionEvent;
+            _hubConnection.Reconnected -= OnReconnected;
+
             await _hubConnection.DisposeAsync();
         }
     }
