@@ -1,52 +1,57 @@
 ﻿@page "/"
-@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject Blazored.LocalStorage.ISyncLocalStorageService LocalStorage
  
 <h3>Poker</h3>
 
 @if (!_showRoom)
 {
-    <EditForm Model="@this" OnValidSubmit="@(() => _showRoom = true)">
+    <EditForm @ref="@_form" Model="@this" OnValidSubmit="@(() => _showRoom = true)">
         <DataAnnotationsValidator />
         <label for="playername">
             Name:
         </label>
-        <input @bind:get="_playername" @bind:set="SetPlayername" @bind:event="oninput" id="playername" placeholder="Player's name" autofucus />
-        <ValidationMessage For="@(() => _playername)" />
+        <OwnInputText @bind-Value="@Playername" DisplayName="Name" id="playername" placeholder="Player's name" autofocus />
+        <ValidationMessage For="@(() => Playername)" />
 
-        <button disabled="@(string.IsNullOrWhiteSpace(_playername))">
+        <button disabled="@(!_form!.EditContext!.Validate())">
             Connect
         </button>
     </EditForm>
 }
 else
 {
-    <Room Playername="@_playername" ConnectionFailed="() => _showRoom = false" />
+    <Room Playername="@Playername" ConnectionFailed="@(() => _showRoom = false)" />
 }
 
 @code {
     private const string LocalStorageKey = "playername";
 
     private bool _showRoom = false;
+    private EditForm? _form;
 
-    [Required]
     private string _playername = string.Empty;
 
-    private async Task SetPlayername(string value)
+    [Required, StringLength(20)]
+    public string Playername
     {
-        _playername = value;
+        get => _playername;
+        set
+        {
+            _playername = value;
 
-        await LocalStorage.SetItemAsStringAsync(LocalStorageKey, _playername);
+            LocalStorage.SetItemAsString(LocalStorageKey, _playername);
+        }
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        if (await LocalStorage.ContainKeyAsync(LocalStorageKey))
+        if (LocalStorage.ContainKey(LocalStorageKey))
         {
-            _playername = await LocalStorage.GetItemAsStringAsync(LocalStorageKey);
+            Playername = LocalStorage.GetItemAsString(LocalStorageKey);
         }
         else
         {
-            await LocalStorage.SetItemAsStringAsync(LocalStorageKey, string.Empty);
+            LocalStorage.SetItemAsString(LocalStorageKey, string.Empty);
         }
     }
 }
