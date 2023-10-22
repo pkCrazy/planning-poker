@@ -94,7 +94,7 @@
         try
         {
             await _hubConnection.StartAsync();
-            await _hubConnection.SendAsync("PlayerConnected", Playername);
+            await _hubConnection.SendAsync(nameof(IPlanningPokerServer.PlayerConnected), Playername);
         }
         catch (HttpRequestException)
         {
@@ -112,7 +112,7 @@
     {
         if (_hubConnection is not null)
         {
-            await _hubConnection.SendAsync("PlayerConnected", Playername);
+            await _hubConnection.SendAsync(nameof(IPlanningPokerServer.PlayerConnected), Playername);
         }
     }
 
@@ -136,7 +136,7 @@
     {
         if (_hubConnection?.State is HubConnectionState.Connected)
         {
-            await _hubConnection.SendAsync("Vote", number);
+            await _hubConnection.SendAsync(nameof(IPlanningPokerServer.Vote), number);
         }
     }
 
@@ -151,7 +151,7 @@
     {
         if (_hubConnection?.State is HubConnectionState.Connected)
         {
-            await _hubConnection.SendAsync("NewVote");
+            await _hubConnection.SendAsync(nameof(IPlanningPokerServer.NewVote));
         }
     }
 
@@ -168,7 +168,7 @@
     {
         if (_hubConnection?.State is HubConnectionState.Connected)
         {
-            await _hubConnection.SendAsync("ShowVotes");
+            await _hubConnection.SendAsync(nameof(IPlanningPokerServer.ShowVotes));
         }
     }
 
