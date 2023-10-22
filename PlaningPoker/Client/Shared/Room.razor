@@ -85,11 +85,11 @@
         _hubConnection.Closed += ConnectionEvent;
         _hubConnection.Reconnected += OnReconnected;
 
-        _hubConnection.On<IEnumerable<Player>, bool>("PlayerConnected", OnPlayerConnected);
-        _hubConnection.On<IEnumerable<Player>>("PlayerDisconnected", OnPlayerDisconnected);
-        _hubConnection.On<Player>("PlayerVoted", OnPlayerVoted);
-        _hubConnection.On<IEnumerable<Player>>("NewVote", OnNewVote);
-        _hubConnection.On("ShowVotes", OnShowVotes);
+        _hubConnection.On<IEnumerable<Player>, bool>(nameof(IPlanningPokerClient.PlayerConnected), OnPlayerConnected);
+        _hubConnection.On<IEnumerable<Player>>(nameof(IPlanningPokerClient.PlayerDisconnected), OnPlayerDisconnected);
+        _hubConnection.On<Player>(nameof(IPlanningPokerClient.PlayerVoted), OnPlayerVoted);
+        _hubConnection.On<IEnumerable<Player>>(nameof(IPlanningPokerClient.NewVote), OnNewVote);
+        _hubConnection.On(nameof(IPlanningPokerClient.ShowVotes), OnShowVotes);
 
         try
         {
