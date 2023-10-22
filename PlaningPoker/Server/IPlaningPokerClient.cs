@@ -2,7 +2,7 @@
 
 namespace PlaningPoker.Server;
 
-public interface IPlaningPokerHub
+public interface IPlaningPokerClient
 {
     Task PlayerConnected(IEnumerable<Player> players, bool areVotesVisible);
 

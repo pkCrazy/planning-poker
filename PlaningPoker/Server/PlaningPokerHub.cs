@@ -3,7 +3,7 @@ using PlaningPoker.Shared;
 
 namespace PlaningPoker.Server;
 
-public sealed class PlaningPokerHub : Hub<IPlaningPokerHub>, IPlanningPokerServer
+public sealed class PlaningPokerHub : Hub<IPlaningPokerClient>, IPlanningPokerServer
 {
     private readonly RoomState _state;
 
